@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/rs/zerolog"
-	"go-compose-it/pkg/env"
-	myLogger "go-compose-it/pkg/logger"
+	"github.com/sicet7/go-compose-it/pkg/config"
+	myLogger "github.com/sicet7/go-compose-it/pkg/logger"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"gorm.io/driver/mysql"
@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	logger     zerolog.Logger
+	logger     *zerolog.Logger
 	connection *gorm.DB
 	supported  = []string{
 		"sqlite",
@@ -30,7 +30,7 @@ var (
 
 func init() {
 	logger = myLogger.Get("database")
-	newConn, err := newConnection(env.Get().DatabaseUrl)
+	newConn, err := newConnection(config.Get().Database.Url)
 
 	if err != nil {
 		logger.Fatal().Msgf("failed to connect to database: %v", err)
@@ -54,7 +54,7 @@ func newConnection(databaseUrl string) (*gorm.DB, error) {
 
 	dsn := parts[1]
 
-	gormLogging := gormLogger.New(&logger, gormLogger.Config{})
+	gormLogging := gormLogger.New(logger, gormLogger.Config{})
 	var newConn *gorm.DB
 	switch dbType {
 	case "sqlite":

@@ -1,8 +1,9 @@
-module go-compose-it
+module github.com/sicet7/go-compose-it
 
 go 1.20
 
 require (
+	github.com/felixge/httpsnoop v1.0.3
 	github.com/gookit/config/v2 v2.2.1
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1

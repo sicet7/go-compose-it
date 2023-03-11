@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"go-compose-it/cmd"
+	"github.com/sicet7/go-compose-it/cmd"
 	"os"
 )
 

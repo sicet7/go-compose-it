@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"go-compose-it/pkg/actions"
-	"go-compose-it/pkg/middleware"
+	"github.com/sicet7/go-compose-it/pkg/actions"
+	"github.com/sicet7/go-compose-it/pkg/middleware"
 	"net/http"
 )
 

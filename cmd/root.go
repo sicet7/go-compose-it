@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/sicet7/go-compose-it/pkg/config"
+	"github.com/sicet7/go-compose-it/pkg/utils"
 	"github.com/spf13/cobra"
-	"go-compose-it/pkg/config"
-	"go-compose-it/pkg/utils"
 	"os"
 )
 
@@ -23,7 +23,7 @@ func Execute() error {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "--config=\"/path/to/config.yaml\"")
 }
 
 func initConfig() {

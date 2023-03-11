@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"go-compose-it/pkg/logger"
+	"github.com/sicet7/go-compose-it/pkg/logger"
 	"net/http"
 )
 
