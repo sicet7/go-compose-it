@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"errors"
-	"github.com/rs/zerolog"
 	"github.com/sicet7/go-compose-it/pkg/config"
 	myLogger "github.com/sicet7/go-compose-it/pkg/logger"
 	"golang.org/x/exp/maps"
@@ -18,7 +17,6 @@ import (
 )
 
 var (
-	logger     *zerolog.Logger
 	connection *gorm.DB
 	supported  = []string{
 		"sqlite",
@@ -28,17 +26,14 @@ var (
 	}
 )
 
-func init() {
-	logger = myLogger.Get("database")
-	newConn, err := newConnection(config.Get().Database.Url)
-
-	if err != nil {
-		logger.Fatal().Msgf("failed to connect to database: %v", err)
-	}
-	connection = newConn
-}
-
 func Conn() *gorm.DB {
+	if connection == nil {
+		newConn, err := newConnection(config.Get().Database.Url)
+		if err != nil {
+			myLogger.Get("database").Fatal().Msgf("failed to connect to database: %v", err)
+		}
+		connection = newConn
+	}
 	return connection
 }
 
@@ -54,7 +49,7 @@ func newConnection(databaseUrl string) (*gorm.DB, error) {
 
 	dsn := parts[1]
 
-	gormLogging := gormLogger.New(logger, gormLogger.Config{})
+	gormLogging := gormLogger.New(myLogger.Get("database"), gormLogger.Config{})
 	var newConn *gorm.DB
 	switch dbType {
 	case "sqlite":

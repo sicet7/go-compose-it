@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/sicet7/go-compose-it/pkg/logger"
+	"github.com/rs/zerolog"
 	"net/http"
 	"time"
 )
@@ -28,13 +28,13 @@ func (r *responseWrite) Code() int {
 	return r.code
 }
 
-func AccessLogMiddleware(next http.Handler) http.Handler {
+func AccessLogMiddleware(next http.Handler, logger *zerolog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 		newWriter := responseWrite{internalWriter: w, code: 200}
 		next.ServeHTTP(&newWriter, r)
 		duration := time.Since(startTime)
-		logger.Get("http-access").Info().
+		logger.Info().
 			Str("host", r.Host).
 			Int("code", newWriter.Code()).
 			Str("user-agent", r.UserAgent()).
