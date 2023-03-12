@@ -3,9 +3,9 @@ package database
 import (
 	"database/sql"
 	"errors"
-	"github.com/sicet7/go-compose-it/pkg/config"
-	myLogger "github.com/sicet7/go-compose-it/pkg/logger"
-	"golang.org/x/exp/maps"
+	"github.com/rs/zerolog"
+	"github.com/sicet7/go-compose-it/src/config"
+	"go.uber.org/fx"
 	"golang.org/x/exp/slices"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -17,8 +17,7 @@ import (
 )
 
 var (
-	connection *gorm.DB
-	supported  = []string{
+	supported = []string{
 		"sqlite",
 		"mssql",
 		"pgsql",
@@ -26,30 +25,24 @@ var (
 	}
 )
 
-func Conn() *gorm.DB {
-	if connection == nil {
-		newConn, err := newConnection(config.Get().Database.Url)
-		if err != nil {
-			myLogger.Get("database").Fatal().Msgf("failed to connect to database: %v", err)
-		}
-		connection = newConn
-	}
-	return connection
-}
+func NewConnection(
+	conf *config.Configuration,
+	logger *zerolog.Logger,
+	lc fx.Lifecycle,
+) *gorm.DB {
 
-func newConnection(databaseUrl string) (*gorm.DB, error) {
-
-	parts := strings.SplitN(databaseUrl, ":", 2)
+	parts := strings.SplitN(conf.Database.Url, ":", 2)
 
 	if !slices.Contains(supported, parts[0]) {
-		return nil, errors.New("unknown or unsupported database type")
+		panic(errors.New("unknown or unsupported database type"))
 	}
 
 	dbType := parts[0]
-
 	dsn := parts[1]
 
-	gormLogging := gormLogger.New(myLogger.Get("database"), gormLogger.Config{})
+	scopedLogger := logger.With().Str("type", "database").Logger()
+
+	gormLogging := gormLogger.New(&scopedLogger, gormLogger.Config{})
 	var newConn *gorm.DB
 	switch dbType {
 	case "sqlite":
@@ -57,7 +50,7 @@ func newConnection(databaseUrl string) (*gorm.DB, error) {
 			Logger: gormLogging,
 		})
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		newConn = dbCon
 		break
@@ -69,7 +62,7 @@ func newConnection(databaseUrl string) (*gorm.DB, error) {
 			Logger: gormLogging,
 		})
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		newConn = dbCon
 		break
@@ -78,14 +71,14 @@ func newConnection(databaseUrl string) (*gorm.DB, error) {
 			Logger: gormLogging,
 		})
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		newConn = dbCon
 		break
 	case "mysql":
 		sqlDB, err := sql.Open("mysql", dsn)
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		dbCon, err := gorm.Open(mysql.New(mysql.Config{
 			Conn:              sqlDB,
@@ -94,17 +87,24 @@ func newConnection(databaseUrl string) (*gorm.DB, error) {
 			Logger: gormLogging,
 		})
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		newConn = dbCon
 		break
 	default:
-		return nil, errors.New("unknown or unsupported database type")
+		panic(errors.New("unknown or unsupported database type"))
 	}
 
-	return newConn, nil
+	//TODO: Run Migrations here
+	//lc.Append(fx.Hook{
+	//	OnStart: func(ctx context.Context) error {
+	//
+	//	},
+	//})
+
+	return newConn
 }
 
-func RunMigrations(models map[string]interface{}) error {
-	return Conn().AutoMigrate(maps.Values(models)...)
-}
+//func RunMigrations(models map[string]interface{}) error {
+//	return Conn().AutoMigrate(maps.Values(models)...)
+//}

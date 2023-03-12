@@ -1,16 +1,29 @@
 package main
 
 import (
-	"fmt"
-	"github.com/sicet7/go-compose-it/cmd"
-	"os"
+	"github.com/sicet7/go-compose-it/src/config"
+	"github.com/sicet7/go-compose-it/src/http"
+	"github.com/sicet7/go-compose-it/src/http/handlers"
+	"github.com/sicet7/go-compose-it/src/logger"
+	"github.com/sicet7/go-compose-it/src/server"
+	"go.uber.org/fx"
+	goHttp "net/http"
 )
 
 func main() {
-	err := cmd.Execute()
-	if err != nil {
-		fmt.Printf("command execution retuned error: %v\n", err)
-		os.Exit(1)
-	}
-	os.Exit(0)
+	app := fx.New(
+		fx.Provide(
+			config.NewConfiguration,
+			logger.NewLogger,
+			server.NewHTTPServer,
+			http.AsRoute(handlers.NewHealthHandler),
+			fx.Annotate(
+				http.NewServeMux,
+				fx.ParamTags(`group:"routes"`),
+			),
+		),
+		fx.Invoke(func(*goHttp.Server) {}),
+	)
+
+	app.Run()
 }

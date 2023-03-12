@@ -1,19 +1,23 @@
 package config
 
 import (
+	"errors"
+	"flag"
 	"fmt"
 	"github.com/gookit/config/v2"
 	"github.com/gookit/config/v2/json"
 	"github.com/gookit/config/v2/yaml"
 	"github.com/rs/zerolog"
-	"github.com/sicet7/go-compose-it/pkg/utils"
+	"github.com/sicet7/go-compose-it/src/utils"
+	"github.com/sicet7/go-compose-it/src/utils/env"
 	"net"
 	"os"
+	"path/filepath"
 )
 
 type LogConfiguration struct {
-	Level string `mapstructure:"level" default:"1"`
-	File  string `mapstructure:"file"`
+	LevelString string `mapstructure:"level" default:"1"`
+	File        string `mapstructure:"file"`
 }
 
 type HttpConfiguration struct {
@@ -42,16 +46,10 @@ type Configuration struct {
 	Http     HttpConfiguration     `mapstructure:"http"`
 }
 
-var (
-	conf   Configuration
-	loaded = false
-)
-
-func (c Configuration) GetLogLevel() zerolog.Level {
-	level, err := zerolog.ParseLevel(c.Log.Level)
+func (c LogConfiguration) Level() zerolog.Level {
+	level, err := zerolog.ParseLevel(c.LevelString)
 	if err != nil {
-		fmt.Printf("Failed to parse value passed into logLevel config: %v\n", err)
-		os.Exit(1)
+		panic(errors.New(fmt.Sprintf("Failed to parse value passed into logLevel config: %v\n", err)))
 	}
 	return level
 }
@@ -67,7 +65,7 @@ func (c NetConfiguration) GetTrustedProxies() []*net.IPNet {
 	return nets
 }
 
-func LoadFromFile(configFile string) error {
+func NewConfiguration() *Configuration {
 	c := config.New("main")
 	c.WithOptions(func(options *config.Options) {
 		options.ParseEnv = true
@@ -78,32 +76,45 @@ func LoadFromFile(configFile string) error {
 	c.AddDriver(yaml.Driver)
 	c.AddDriver(json.Driver)
 
-	if !utils.FileExists(configFile) {
-		fmt.Printf("Failed find configuration file: \"%s\"\n", configFile)
-		os.Exit(1)
-	}
-
-	err := c.LoadFiles(configFile)
+	ex, err := os.Executable()
 	if err != nil {
-		return err
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+
+	var files []string
+
+	if utils.FileExists(exPath + "/config.yaml") {
+		files = append(files, exPath+"/config.yaml")
 	}
 
-	conf = Configuration{}
+	envPath := env.ReadStringEnv("COMPOSE_IT_CONFIG_FILE", "")
+
+	if envPath != "" && utils.FileExists(envPath) {
+		files = append(files, envPath)
+	}
+
+	cliPath := flag.String("config", "", "--config=\"/path/to/config.yaml\"")
+
+	flag.Parse()
+
+	if *cliPath != "" && utils.FileExists(*cliPath) {
+		files = append(files, *cliPath)
+	}
+
+	err = c.LoadFiles(files...)
+	if err != nil {
+		panic(err)
+	}
+
+	conf := Configuration{}
 	err = c.Decode(&conf)
+
 	if err != nil {
-		return err
+		panic(err)
 	}
-	loaded = true
 
-	// just to make sure error is triggered early
-	conf.GetLogLevel()
+	conf.Log.Level()
 
-	return nil
-}
-
-func Get() *Configuration {
-	if !loaded {
-		panic("cannot access configuration before initialization")
-	}
 	return &conf
 }
