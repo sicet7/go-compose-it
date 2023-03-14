@@ -27,14 +27,6 @@ var (
 	}
 )
 
-//var defaultParams = Argon2Params{
-//	memory:      4194304,
-//	iterations:  1,
-//	parallelism: 64,
-//	saltLength:  16,
-//	keyLength:   32,
-//}
-
 type Argon2Params struct {
 	memory      uint32
 	iterations  uint32

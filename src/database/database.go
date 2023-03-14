@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/rs/zerolog"
 	"github.com/sicet7/go-compose-it/src/config"
-	"go.uber.org/fx"
 	"golang.org/x/exp/slices"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -28,7 +27,6 @@ var (
 func NewConnection(
 	conf *config.Configuration,
 	logger *zerolog.Logger,
-	lc fx.Lifecycle,
 ) *gorm.DB {
 
 	parts := strings.SplitN(conf.Database.Url, ":", 2)
@@ -95,16 +93,5 @@ func NewConnection(
 		panic(errors.New("unknown or unsupported database type"))
 	}
 
-	//TODO: Run Migrations here
-	//lc.Append(fx.Hook{
-	//	OnStart: func(ctx context.Context) error {
-	//
-	//	},
-	//})
-
 	return newConn
 }
-
-//func RunMigrations(models map[string]interface{}) error {
-//	return Conn().AutoMigrate(maps.Values(models)...)
-//}
