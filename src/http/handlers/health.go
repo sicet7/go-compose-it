@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/sicet7/go-compose-it/src/http/middleware"
 	"net/http"
 )
 
@@ -16,8 +17,8 @@ func (*HealthHandler) Pattern() string {
 	return "/api/health"
 }
 
-func (*HealthHandler) Middlewares(next http.Handler) http.Handler {
-	return next
+func (*HealthHandler) Middleware() middleware.Middleware {
+	return middleware.NewStack()
 }
 
 func (*HealthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

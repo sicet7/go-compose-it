@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/sicet7/go-compose-it/src/http/middleware"
 	"go.uber.org/fx"
 	"net/http"
 )
@@ -9,7 +10,7 @@ type Route interface {
 	http.Handler
 
 	Pattern() string
-	Middlewares(http.Handler) http.Handler
+	Middleware() middleware.Middleware
 }
 
 func AsRoute(f any) any {
@@ -23,7 +24,7 @@ func AsRoute(f any) any {
 func NewServeMux(routes []Route) *http.ServeMux {
 	mux := http.NewServeMux()
 	for _, route := range routes {
-		mux.Handle(route.Pattern(), route.Middlewares(route))
+		mux.Handle(route.Pattern(), route.Middleware().Mount(route))
 	}
 	return mux
 }
