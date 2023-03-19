@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/rs/zerolog"
-	"github.com/sicet7/go-compose-it/src/config"
 	"github.com/sicet7/go-compose-it/src/utils"
 	"go.uber.org/fx"
 	"log"
@@ -13,15 +12,21 @@ import (
 	"time"
 )
 
+type HttpServerConfig interface {
+	HttpAddress() string
+	HttpTlsCertFile() string
+	HttpTlsKeyFile() string
+}
+
 func NewHTTPServer(
-	conf *config.Configuration,
+	conf HttpServerConfig,
 	logger *zerolog.Logger,
 	mux *http.ServeMux,
 	lc fx.Lifecycle,
 ) *http.Server {
 
-	certFile := conf.Http.TlsConfiguration.CertFile
-	keyFile := conf.Http.TlsConfiguration.KeyFile
+	certFile := conf.HttpTlsCertFile()
+	keyFile := conf.HttpTlsKeyFile()
 
 	tls := certFile != "" && keyFile != ""
 
@@ -34,12 +39,12 @@ func NewHTTPServer(
 	}
 
 	server := http.Server{
-		Addr:         conf.Http.Address,
+		Addr:         conf.HttpAddress(),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
 		ErrorLog: log.New(
-			logger.With().Str("logger", "http-error").Logger(),
+			logger.With().Str("type", "http-error").Logger(),
 			"",
 			log.Lmsgprefix|log.Llongfile,
 		),

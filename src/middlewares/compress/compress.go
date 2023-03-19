@@ -1,59 +1,38 @@
-package middleware
+package compress
 
 import (
 	"compress/flate"
 	"compress/gzip"
+	"github.com/felixge/httpsnoop"
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/felixge/httpsnoop"
 )
 
 const acceptEncoding string = "Accept-Encoding"
+
+type CompressionMiddleware struct {
+	level int
+}
 
 type compressResponseWriter struct {
 	compressor io.Writer
 	w          http.ResponseWriter
 }
 
-func (cw *compressResponseWriter) WriteHeader(c int) {
-	cw.w.Header().Del("Content-Length")
-	cw.w.WriteHeader(c)
+type CompressionConfig interface {
+	CompressionLevel() int
 }
 
-func (cw *compressResponseWriter) Write(b []byte) (int, error) {
-	h := cw.w.Header()
-	if h.Get("Content-Type") == "" {
-		h.Set("Content-Type", http.DetectContentType(b))
-	}
-	h.Del("Content-Length")
-
-	return cw.compressor.Write(b)
-}
-
-func (cw *compressResponseWriter) ReadFrom(r io.Reader) (int64, error) {
-	return io.Copy(cw.compressor, r)
-}
-
-type flusher interface {
-	Flush() error
-}
-
-func (w *compressResponseWriter) Flush() {
-	// Flush compressed data if compressor supports it.
-	if f, ok := w.compressor.(flusher); ok {
-		f.Flush()
-	}
-	// Flush HTTP response.
-	if f, ok := w.w.(http.Flusher); ok {
-		f.Flush()
+func NewCompressionMiddleware(config CompressionConfig) *CompressionMiddleware {
+	return &CompressionMiddleware{
+		level: config.CompressionLevel(),
 	}
 }
 
-func CompressionMiddleware(h http.Handler, level int) http.Handler {
-	if level < gzip.DefaultCompression || level > gzip.BestCompression {
-		level = gzip.DefaultCompression
+func (m *CompressionMiddleware) Mount(h http.Handler) http.Handler {
+	if m.level < gzip.DefaultCompression || m.level > gzip.BestCompression {
+		m.level = gzip.DefaultCompression
 	}
 
 	const (
@@ -90,9 +69,9 @@ func CompressionMiddleware(h http.Handler, level int) http.Handler {
 		// wrap the ResponseWriter with the writer for the chosen encoding
 		var encWriter io.WriteCloser
 		if encoding == gzipEncoding {
-			encWriter, _ = gzip.NewWriterLevel(w, level)
+			encWriter, _ = gzip.NewWriterLevel(w, m.level)
 		} else if encoding == flateEncoding {
-			encWriter, _ = flate.NewWriter(w, level)
+			encWriter, _ = flate.NewWriter(w, m.level)
 		}
 		defer encWriter.Close()
 
@@ -121,4 +100,42 @@ func CompressionMiddleware(h http.Handler, level int) http.Handler {
 
 		h.ServeHTTP(w, r)
 	})
+}
+
+func (*CompressionMiddleware) Priority() int {
+	return 5000
+}
+
+func (cw *compressResponseWriter) WriteHeader(c int) {
+	cw.w.Header().Del("Content-Length")
+	cw.w.WriteHeader(c)
+}
+
+func (cw *compressResponseWriter) Write(b []byte) (int, error) {
+	h := cw.w.Header()
+	if h.Get("Content-Type") == "" {
+		h.Set("Content-Type", http.DetectContentType(b))
+	}
+	h.Del("Content-Length")
+
+	return cw.compressor.Write(b)
+}
+
+func (cw *compressResponseWriter) ReadFrom(r io.Reader) (int64, error) {
+	return io.Copy(cw.compressor, r)
+}
+
+type flusher interface {
+	Flush() error
+}
+
+func (w *compressResponseWriter) Flush() {
+	// Flush compressed data if compressor supports it.
+	if f, ok := w.compressor.(flusher); ok {
+		f.Flush()
+	}
+	// Flush HTTP response.
+	if f, ok := w.w.(http.Flusher); ok {
+		f.Flush()
+	}
 }

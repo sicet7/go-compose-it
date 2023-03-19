@@ -1,11 +1,11 @@
 log:
-  level: 1
+  level: 2
   file: "${HOME}/GolandProjects/go-compose-it/test.log"
 http:
   addr: "0.0.0.0:8000"
-  net:
-    trustedProxies:
-      - "192.168.0.0/24"
-      - "172.16.0.0/12"
-      - "10.0.0.0/8"
-      - "fc00::/7"
+#  net:
+#    trustedProxies:
+#      - "192.168.0.0/24"
+#      - "172.16.0.0/12"
+#      - "10.0.0.0/8"
+#      - "fc00::/7"

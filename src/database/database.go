@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/rs/zerolog"
-	"github.com/sicet7/go-compose-it/src/config"
 	"golang.org/x/exp/slices"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
@@ -24,12 +23,16 @@ var (
 	}
 )
 
+type ConnectionConfig interface {
+	DatabaseUrl() string
+}
+
 func NewConnection(
-	conf *config.Configuration,
+	conf ConnectionConfig,
 	logger *zerolog.Logger,
 ) *gorm.DB {
 
-	parts := strings.SplitN(conf.Database.Url, ":", 2)
+	parts := strings.SplitN(conf.DatabaseUrl(), ":", 2)
 
 	if !slices.Contains(supported, parts[0]) {
 		panic(errors.New("unknown or unsupported database type"))
