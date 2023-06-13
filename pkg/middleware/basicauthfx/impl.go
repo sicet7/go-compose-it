@@ -1,24 +1,15 @@
-package middleware
+package basicauthfx
 
 import (
 	"context"
 	"net/http"
 )
 
-type BasicAuthUser interface {
-	RequestTag() string
-	VerifyPassword(string) bool
-}
-
-type BasicAuthUserProvider interface {
-	FindUserByUsername(string) (BasicAuthUser, error)
-}
-
-func BasicAuthMiddleware(next http.Handler, provider BasicAuthUserProvider) http.Handler {
+func (m *Middleware) Mount(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username, password, ok := r.BasicAuth()
 		if ok {
-			user, err := provider.FindUserByUsername(username)
+			user, err := m.provider.FindUserByUsername(username)
 			if err == nil && user.VerifyPassword(password) {
 				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "user", user.RequestTag())))
 				return

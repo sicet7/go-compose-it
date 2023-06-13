@@ -1,4 +1,4 @@
-package middleware
+package trustedproxyfx
 
 import (
 	"net"
@@ -22,12 +22,12 @@ var (
 	protoRegex = regexp.MustCompile(`(?i)(?:proto=)(https|http)`)
 )
 
-func ProxyHeadersMiddleware(h http.Handler, trustedSubnets []*net.IPNet) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+func (m *Middleware) Mount(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		trusted := false
 		ip := net.ParseIP(r.RemoteAddr)
-		for _, cidr := range trustedSubnets {
+		for _, cidr := range m.trustedSubnets {
 			if cidr.Contains(ip) {
 				trusted = true
 				break
@@ -54,9 +54,7 @@ func ProxyHeadersMiddleware(h http.Handler, trustedSubnets []*net.IPNet) http.Ha
 		}
 		// Call the next handler in the chain.
 		h.ServeHTTP(w, r)
-	}
-
-	return http.HandlerFunc(fn)
+	})
 }
 
 // getIP retrieves the IP from the X-Forwarded-For, X-Real-IP and RFC7239

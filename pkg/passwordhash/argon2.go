@@ -1,11 +1,11 @@
-package password
+package passwordhash
 
 import (
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/sicet7/go-compose-it/src/utils"
 	"golang.org/x/crypto/argon2"
 	"strings"
 )
@@ -186,7 +186,8 @@ func (h *Argon2Hash) MarshalJSON() ([]byte, error) {
 }
 
 func createArgonPassword(hashType *HashType, password string, params Argon2Params) (Argon2Hash, error) {
-	salt, err := utils.GenerateRandomBytes(int(params.saltLength))
+	salt := make([]byte, params.saltLength)
+	_, err := rand.Read(salt)
 	if err != nil {
 		return Argon2Hash{}, err
 	}

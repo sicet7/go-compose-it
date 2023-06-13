@@ -1,4 +1,4 @@
-package compress
+package compressfx
 
 import (
 	"compress/flate"
@@ -11,26 +11,7 @@ import (
 
 const acceptEncoding string = "Accept-Encoding"
 
-type CompressionMiddleware struct {
-	level int
-}
-
-type compressResponseWriter struct {
-	compressor io.Writer
-	w          http.ResponseWriter
-}
-
-type CompressionConfig interface {
-	CompressionLevel() int
-}
-
-func NewCompressionMiddleware(config CompressionConfig) *CompressionMiddleware {
-	return &CompressionMiddleware{
-		level: config.CompressionLevel(),
-	}
-}
-
-func (m *CompressionMiddleware) Mount(h http.Handler) http.Handler {
+func (m *Middleware) Mount(h http.Handler) http.Handler {
 	if m.level < gzip.DefaultCompression || m.level > gzip.BestCompression {
 		m.level = gzip.DefaultCompression
 	}
@@ -100,10 +81,6 @@ func (m *CompressionMiddleware) Mount(h http.Handler) http.Handler {
 
 		h.ServeHTTP(w, r)
 	})
-}
-
-func (*CompressionMiddleware) Priority() int {
-	return 5000
 }
 
 func (cw *compressResponseWriter) WriteHeader(c int) {
