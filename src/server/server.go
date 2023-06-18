@@ -42,7 +42,7 @@ func NewHTTPServer(
 		Addr:         conf.HttpAddress(),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
+		IdleTimeout:  time.Minute,
 		ErrorLog: log.New(
 			logger.With().Str("type", "http-error").Logger(),
 			"",
